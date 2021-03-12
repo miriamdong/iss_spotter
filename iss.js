@@ -8,12 +8,6 @@
  */
 
 const request = require('request');
-// const fetchMyIP = callback => {
-//   function getIP(json) {
-//     document.write("My public IP address is: ", json.ip);
-//   }
-// };
-
 
 const fetchMyIP = callback => {
   request('https://api.ipify.org', (e, response, IP) => {
@@ -42,7 +36,6 @@ const fetchMyIP = callback => {
 //   }
 // };
 
-
 const fetchCoordsByIP = (ip, callback) => {
   request(`https://freegeoip.app/json/${ip}`, (e, response, body) => {
     if (e) return callback(e, null);
@@ -56,36 +49,57 @@ const fetchCoordsByIP = (ip, callback) => {
 };
 
 
-
-module.exports = {
-  fetchMyIP,
-  fetchCoordsByIP
+const fetchISSFlyOverTimes = function(coords, callback) {
+  const url = `http://api.open-notify.org/iss-pass.json?lat=${ coords.latitude }&lon=${ coords.longitude }`;
+  request(url, (e, response, body) => {
+    if (e) return callback(e, null);
+    if (response.statusCode !== 200) {
+      callback(Error(`Status Code ${response.statusCode} when fetching ISS pass times: ${body}`), null);
+      return;
+    }
+    const ISS = JSON.parse(body).response;
+    callback(null, ISS);
+  });
 };
-// CALLBACK({
-//   "message": "success",
-//   "request": {
-//     "latitude": LATITUE,
-//     "longitude": LONGITUDE,
-//     "altitude": ALTITUDE,
-//     "passes": NUMBER_OF_PASSES,
-//     "datetime": REQUEST_TIMESTAMP
-//   },
-//   "response": [{
-//       "risetime": TIMESTAMP,
-//       "duration": DURATION
-//     },
-//     ...
-//   ]
-// })
 
-// const fetchISSFlyOverTimes = function(coords, callback) {
-//   // ...
-// };
+
+/**
+ * Orchestrates multiple API requests in order to determine the next 5 upcoming ISS fly overs for the user's current location.
+ * Input:
+ *   - A callback with an error or results.
+ * Returns (via Callback):
+ *   - An error, if any (nullable)
+ *   - The fly-over times as an array (null if error):
+ *     [ { risetime: <number>, duration: <number> }, ... ]
+ */
+const nextISSTimesForMyLocation = callback => {
+  fetchMyIP((error, ip) => {
+    if (error) return callback(error, null);
+
+    fetchCoordsByIP(ip, (error, loc) => {
+      if (error) return callback(error, null);
+      fetchISSFlyOverTimes(loc, (error, nextPasses) => {
+        if (error) return callback(error, null);
+
+        callback(null, nextPasses);
+      });
+    });
+  });
+};
 
 
 // let http = require('http');
 
+// module.exports = {
+//   fetchMyIP,
+//   fetchCoordsByIP,
+//   fetchISSFlyOverTimes,
+//   nextISSTimesForMyLocation
+// };
 
+module.exports = {
+  nextISSTimesForMyLocation
+};
 
 // http.get({
 //   'host': 'api.ipify.org',
