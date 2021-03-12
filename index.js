@@ -18,8 +18,6 @@
 // });
 
 
-
-
 // fetchCoordsByIP('64.46.0.209', (error, coords) => {
 //   if (error) {
 //     console.log("It didn't work!", error);
@@ -64,6 +62,10 @@ const printPassTimes = function(passTimes) {
     const duration = pass.duration;
     console.log(`Next pass at ${datetime} for ${duration} seconds!`);
   }
+};
+
+module.exports = {
+  printPassTimes
 };
 
 nextISSTimesForMyLocation((error, passTimes) => {
